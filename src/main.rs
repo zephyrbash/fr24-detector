@@ -1,12 +1,11 @@
 use std::{
     env,
-    ops::Not,
     process::{self, Command},
 };
 
 use fr24_detector::{
     CliCommand, VERSION, check_config_file, config_general_webhook_remove,
-    config_general_webhook_set, parse_cli_command, parse_failed_checks,
+    config_general_webhook_set, parse_cli_command, sync_problem_states_from_output,
 };
 
 fn main() {
@@ -70,24 +69,40 @@ fn main() {
 
     // Make it so that it runs the check every minute
     loop {
-        let failed_checks = check_failed_checks();
-        if failed_checks.is_empty().not() {
-            println!("Failed checks:");
-            for check in failed_checks {
-                println!("- {}", check);
-            }
+        if let Err(err) = check_failed_checks() {
+            eprintln!("Error checking status: {}", err);
         }
 
         std::thread::sleep(std::time::Duration::from_secs(60));
     }
 }
 
-fn check_failed_checks() -> Vec<String> {
+fn check_failed_checks() -> Result<(), String> {
     let output = Command::new("fr24feed-status")
         .output()
-        .expect("Failed to execute command");
+        .map_err(|e| format!("Failed to execute command: {}", e))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("fr24feed-status exited with error: {}", stderr.trim()));
+    }
+
     let content = output.stdout;
     let status_output = String::from_utf8_lossy(&content);
+    let (failed_checks, notification) = sync_problem_states_from_output(&status_output)?;
 
-    parse_failed_checks(&status_output)
+    if failed_checks.is_empty() {
+        println!("All checks are passing.");
+    } else {
+        println!("Failed checks:");
+        for check in failed_checks {
+            println!("- {}", check);
+        }
+    }
+
+    if let Some(message) = notification {
+        println!("Webhook notification sent: {}", message);
+    }
+
+    Ok(())
 }

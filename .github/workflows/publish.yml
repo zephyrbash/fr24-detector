@@ -83,6 +83,22 @@ jobs:
           name: fr24d-arm64
           path: release
 
+      - name: Get SHA and file size of AMD64 binary
+        id: amd64-info
+        run: |
+          sha256sum release/fr24d-linux-amd64 | awk '{print $1}' > release/fr24d-linux-amd64.sha256
+          stat -c%s release/fr24d-linux-amd64 > release/fr24d-linux-amd64.size
+          echo "amd64_sha=$(cat release/fr24d-linux-amd64.sha256)" >> "$GITHUB_OUTPUT"
+          echo "amd64_size=$(cat release/fr24d-linux-amd64.size)" >> "$GITHUB_OUTPUT"
+
+      - name: Get SHA and file size of ARM64 binary
+        id: arm64-info
+        run: |
+          sha256sum release/fr24d-linux-arm64 | awk '{print $1}' > release/fr24d-linux-arm64.sha256
+          stat -c%s release/fr24d-linux-arm64 > release/fr24d-linux-arm64.size
+          echo "arm64_sha=$(cat release/fr24d-linux-arm64.sha256)" >> "$GITHUB_OUTPUT"
+          echo "arm64_size=$(cat release/fr24d-linux-arm64.size)" >> "$GITHUB_OUTPUT"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
