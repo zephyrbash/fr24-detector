@@ -1,0 +1,16 @@
+[package]
+name = "fr24-detector"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+[[bin]]
+name = "fr24d"
+path = "src/main.rs"
+
+[profile.release]
+strip = true  # Automatically strip symbols from the binary.
+opt-level = "z"  # Optimize for size
+lto = true
+codegen-units = 1

@@ -1,0 +1,11 @@
+# Ignore binarioes
+/target
+
+# Ignore IDE files
+/.vscode
+
+# .env is where i am storing my secrets for testing, this will not use a .env file
+.env
+
+# publishing CI/CD stuff that is not completed
+assets/

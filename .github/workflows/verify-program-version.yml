@@ -1,0 +1,61 @@
+name: Verify Program Version
+on:
+  pull_request:
+    # Added labeled and unlabeled to re-trigger when the label changes
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  verify-version:
+    # Skips the entire job if the label is present
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'ignore-version-bump') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compare version against base branch
+        id: version-check
+        run: |
+          set -euo pipefail
+
+          base_ref="origin/${{ github.base_ref }}"
+          git fetch origin "${{ github.base_ref }}" --depth=1
+
+          base_version=$(git show "$base_ref:Cargo.toml" | grep -m1 '^version =' | sed -E 's/^version = "(.*)"/\1/')
+          pr_version=$(grep -m1 '^version =' Cargo.toml | sed -E 's/^version = "(.*)"/\1/')
+
+          echo "base_version=$base_version" >> "$GITHUB_OUTPUT"
+          echo "pr_version=$pr_version" >> "$GITHUB_OUTPUT"
+
+          if [ "$base_version" != "$pr_version" ]; then
+            echo "version_changed=true" >> "$GITHUB_OUTPUT"
+            echo "comment_body=✅ Version was updated from **$base_version** to **$pr_version**." >> "$GITHUB_OUTPUT"
+          else
+            echo "version_changed=false" >> "$GITHUB_OUTPUT"
+            echo "comment_body=⚠️ Version was not changed - please update Cargo.toml or apply the \`ignore-version-bump\` label. Current version is **$pr_version**." >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Leave a comment on the PR
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ${{ steps.version-check.outputs.comment_body }}
+
+            Base version: **${{ steps.version-check.outputs.base_version }}**
+            PR version: **${{ steps.version-check.outputs.pr_version }}**
+
+      - name: Fail if version unchanged
+        # Evaluates the output and fails the workflow if needed
+        if: steps.version-check.outputs.version_changed == 'false'
+        run: |
+          echo "::error::The version in Cargo.toml was not updated. Please bump the version or add the 'ignore-version-bump' label."
+          exit 1

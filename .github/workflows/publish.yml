@@ -1,0 +1,93 @@
+name: Publish Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build-amd64:
+    if: contains(github.event.head_commit.message, 'chore(publishing)')
+    runs-on: ubuntu-26.04
+    name: Build AMD64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Rename binary
+        run: mv target/release/fr24d fr24d-linux-amd64
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: fr24d-amd64
+          path: fr24d-linux-amd64
+
+  build-arm64:
+    if: contains(github.event.head_commit.message, 'chore(publishing)')
+    runs-on: ubuntu-26.04-arm
+    name: Build ARM64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Rename binary
+        run: mv target/release/fr24d fr24d-linux-arm64
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: fr24d-arm64
+          path: fr24d-linux-arm64
+
+  publish:
+    if: contains(github.event.head_commit.message, 'chore(publishing)')
+    needs:
+      - build-amd64
+      - build-arm64
+
+    runs-on: ubuntu-slim
+    name: Publish GitHub Release
+
+    steps:
+      - name: Download AMD64 binary
+        uses: actions/download-artifact@v4
+        with:
+          name: fr24d-amd64
+          path: release
+
+      - name: Download ARM64 binary
+        uses: actions/download-artifact@v4
+        with:
+          name: fr24d-arm64
+          path: release
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nightly-${{ github.run_number }}
+          name: Nightly ${{ github.run_number }}
+          files: |
+            release/fr24d-linux-amd64
+            release/fr24d-linux-arm64
