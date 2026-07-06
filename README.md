@@ -73,3 +73,7 @@ sudo systemctl enable fr24d.service
 sudo systemctl start fr24d.service
 sudo systemctl status fr24d.service
 ```
+and to restart just do
+```bash
+sudo systemctl restart fr24d.service
+```

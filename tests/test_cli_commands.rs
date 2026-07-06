@@ -83,6 +83,108 @@ fn uses_home_directory_for_default_config_path() {
 }
 
 #[test]
+fn does_not_send_webhook_when_state_has_not_changed() {
+    let unique_dir = std::env::temp_dir().join(format!(
+        "fr24-detector-no-change-test-{}",
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    fs::create_dir_all(&unique_dir).unwrap();
+
+    let config_path = unique_dir.join("fr24detector.sqlite3");
+    let webhook_url = "http://127.0.0.1:1";
+
+    let path = PathBuf::from(&config_path);
+    let conn = rusqlite::Connection::open(&path).unwrap();
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO settings (key, value) VALUES (?1, ?2)",
+        ["webhook_url", &webhook_url],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO settings (key, value) VALUES (?1, ?2)",
+        ["problems_link", "true"],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO settings (key, value) VALUES (?1, ?2)",
+        ["problems_receiver", "false"],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO settings (key, value) VALUES (?1, ?2)",
+        ["problems_started", "true"],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO settings (key, value) VALUES (?1, ?2)",
+        ["startup_notified", "true"],
+    )
+    .unwrap();
+
+    let (_failed_checks, notification) =
+        sync_problem_states_from_output_with_path(&config_path, "FR24 Link: down ... failed!")
+            .unwrap();
+
+    assert!(notification.is_none());
+}
+
+#[test]
+fn sends_online_notification_on_first_run() {
+    let unique_dir = std::env::temp_dir().join(format!(
+        "fr24-detector-startup-test-{}",
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    fs::create_dir_all(&unique_dir).unwrap();
+
+    let config_path = unique_dir.join("fr24detector.sqlite3");
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let webhook_url = format!("http://{}", listener.local_addr().unwrap());
+
+    let server_thread = thread::spawn(move || {
+        let (mut stream, _) = listener.accept().unwrap();
+        let mut buffer = [0; 1024];
+        let _ = stream.read(&mut buffer).unwrap();
+        let response = b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok";
+        stream.write_all(response).unwrap();
+    });
+
+    let path = PathBuf::from(&config_path);
+    let conn = rusqlite::Connection::open(&path).unwrap();
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO settings (key, value) VALUES (?1, ?2)",
+        ["webhook_url", &webhook_url],
+    )
+    .unwrap();
+
+    let (_failed_checks, first_notification) =
+        sync_problem_states_from_output_with_path(&config_path, "").unwrap();
+    let (_failed_checks, second_notification) =
+        sync_problem_states_from_output_with_path(&config_path, "").unwrap();
+
+    server_thread.join().unwrap();
+
+    assert!(first_notification.is_some());
+    assert!(first_notification.unwrap().contains("online"));
+    assert!(second_notification.is_none());
+}
+
+#[test]
 fn writes_problem_states_to_config_file() {
     let unique_dir = std::env::temp_dir().join(format!(
         "fr24-detector-test-{}",

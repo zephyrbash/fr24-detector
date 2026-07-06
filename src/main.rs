@@ -8,6 +8,7 @@ use fr24_detector::{
     config_general_webhook_set, parse_cli_command, sync_problem_states_from_output,
 };
 
+/// Program entrypoint
 fn main() {
     // Run this program only on Linux
     if cfg!(not(target_os = "linux")) {
@@ -46,6 +47,10 @@ fn main() {
             println!("Webhook URL removed.");
             return;
         }
+        Ok(CliCommand::Help) => {
+            println!("Usage: fr24d version | fr24d config webhook set <url> | fr24d config webhook delete");
+            return;
+        }
         Ok(CliCommand::Daemon) => {}
         Err(err) => {
             eprintln!("{}", err);
@@ -73,10 +78,11 @@ fn main() {
             eprintln!("Error checking status: {}", err);
         }
 
-        std::thread::sleep(std::time::Duration::from_secs(60));
+        std::thread::sleep(std::time::Duration::from_secs(5));
     }
 }
 
+/// Checks for any failed parts in the fr24feed-status command
 fn check_failed_checks() -> Result<(), String> {
     let output = Command::new("fr24feed-status")
         .output()
