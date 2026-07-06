@@ -4,7 +4,7 @@ use std::{
 };
 
 use fr24_detector::{
-    CliCommand, VERSION, check_config_file, config_general_webhook_remove,
+    CHECK_TIME_FREQUENCY, CliCommand, VERSION, check_config_file, config_general_webhook_remove,
     config_general_webhook_set, parse_cli_command, sync_problem_states_from_output,
 };
 
@@ -14,6 +14,11 @@ fn main() {
     if cfg!(not(target_os = "linux")) {
         println!("This program runs only on Linux!");
         return;
+    }
+
+    // Send a message if running in debug mode
+    if cfg!(debug_assertions) {
+        println!("WARNING: Running in debug mode");
     }
 
     let args: Vec<String> = env::args().skip(1).collect();
@@ -48,7 +53,9 @@ fn main() {
             return;
         }
         Ok(CliCommand::Help) => {
-            println!("Usage: fr24d version | fr24d config webhook set <url> | fr24d config webhook delete");
+            println!(
+                "Usage: fr24d version | fr24d config webhook set <url> | fr24d config webhook delete"
+            );
             return;
         }
         Ok(CliCommand::Daemon) => {}
@@ -78,7 +85,7 @@ fn main() {
             eprintln!("Error checking status: {}", err);
         }
 
-        std::thread::sleep(std::time::Duration::from_secs(5));
+        std::thread::sleep(std::time::Duration::from_secs(CHECK_TIME_FREQUENCY));
     }
 }
 
@@ -90,7 +97,10 @@ fn check_failed_checks() -> Result<(), String> {
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("fr24feed-status exited with error: {}", stderr.trim()));
+        return Err(format!(
+            "fr24feed-status exited with error: {}",
+            stderr.trim()
+        ));
     }
 
     let content = output.stdout;

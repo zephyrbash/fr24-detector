@@ -9,3 +9,4 @@
 
 # publishing CI/CD stuff that is not completed
 assets/
+!.github/assets

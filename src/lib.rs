@@ -11,6 +11,7 @@ use json_escape::escape_str;
 use rusqlite::{Connection, OptionalExtension};
 
 pub const VERSION: &str = consts_fr24d::VERSION;
+pub const CHECK_TIME_FREQUENCY: u64 = consts_fr24d::CHECK_TIME_FREQUENCY;
 
 // -----------------------------------------------------------------------------
 // CLI parsing
@@ -175,7 +176,7 @@ pub fn sync_problem_states_from_output_with_path(
             failed_checks.join(", ")
         )
     } else {
-        "FR24 detector recovered: all checks are passing.".to_string()
+        "FR24 detector is back online: all checks are passing.".to_string()
     };
 
     if webhook_url.trim().is_empty() || !should_notify {
