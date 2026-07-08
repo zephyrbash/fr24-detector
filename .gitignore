@@ -8,5 +8,7 @@
 .env
 
 # publishing CI/CD stuff that is not completed
-assets/
+# ignore all files in /assets except hash.txt
+/assets/*
+!/assets/hash.txt
 !.github/assets
