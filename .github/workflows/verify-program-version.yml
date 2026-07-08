@@ -39,7 +39,8 @@ jobs:
             echo "comment_body=✅ Version was updated from **$base_version** to **$pr_version**." >> "$GITHUB_OUTPUT"
           else
             echo "version_changed=false" >> "$GITHUB_OUTPUT"
-            echo "comment_body=⚠️ Version was not changed - please update Cargo.toml or apply the \`ignore-version-bump\` label. Current version is **$pr_version**." >> "$GITHUB_OUTPUT"
+            # Disable comments for now
+            # echo "comment_body=⚠️ Version was not changed - please update Cargo.toml or apply the \`ignore-version-bump\` label. Current version is **$pr_version**." >> "$GITHUB_OUTPUT"
           fi
 
       - name: Leave a comment on the PR
