@@ -36,13 +36,15 @@ jobs:
 
           if [ "$base_version" != "$pr_version" ]; then
             echo "version_changed=true" >> "$GITHUB_OUTPUT"
-            echo "comment_body=✅ Version was updated from **$base_version** to **$pr_version**." >> "$GITHUB_OUTPUT"
+            # Disable comments for now
+            # echo "comment_body=✅ Version was updated from **$base_version** to **$pr_version**." >> "$GITHUB_OUTPUT"
           else
             echo "version_changed=false" >> "$GITHUB_OUTPUT"
             echo "comment_body=⚠️ Version was not changed - please update Cargo.toml or apply the \`ignore-version-bump\` label. Current version is **$pr_version**." >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Leave a comment on the PR
+      - name: Leave a comment on the PR if version unchanged
+        if: steps.version-check.outputs.version_changed == 'false'
         uses: peter-evans/create-or-update-comment@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
