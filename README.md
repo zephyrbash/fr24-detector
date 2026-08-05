@@ -30,7 +30,9 @@ There are some pre-compiled binaries available from the releases page, however i
 
 ### Compiling from source
 
-Compiling is recommended if you have Rust installed as it only takes a few seconds
+Compiling from source is recommended if you have Rust installed as it shouldn't take too long and makes updating easier.
+
+**Also these instructions can be automated by running `bash scripts/setup.sh` on systems that have systemd supported.**
 
 1. Download Rust if you haven't already
 2. Clone the repo
@@ -56,10 +58,10 @@ Now go to the next section
 1. **(Optional)** move your binary to the local bin folder
 ```bash
 # If you compiled yourself
-mv target/release/fr24d /usr/local/bin/fr24d
+cp target/release/fr24d /usr/local/bin/fr24d
 
 # If you downloaded it (assuming you're in the same folder)
-mv fr24d /usr/local/bin/fr24d
+cp fr24d /usr/local/bin/fr24d
 ```
 2. Create a service file like `/etc/systemd/system/fr24d.service` (unless you want to symlink) with the following content:
 ```toml
