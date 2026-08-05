@@ -13,11 +13,10 @@ fi
 if [ -f "Cargo.toml" ]; then
     echo "Running from the project root.,"
 elif [ -f "../Cargo.toml" ] && [ "$(basename "$PWD")" = "scripts" ]; then
-    echo "Running from the scripts folder. Popping up to the root directory..."
+    echo "Running from the scripts folder- changing to the project's root directory..."
     cd ..
 else
-    echo "I can't find Cargo.toml."
-    echo "Please run this script from either the project root or the scripts folder."
+    echo "Cargo.toml can't be found - Please run this script from either the project root or the scripts folder."
     exit 1
 fi
 
