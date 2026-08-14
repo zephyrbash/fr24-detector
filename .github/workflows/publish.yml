@@ -72,13 +72,13 @@ jobs:
 
     steps:
       - name: Download AMD64 binary
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: fr24d-amd64
           path: release
 
       - name: Download ARM64 binary
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: fr24d-arm64
           path: release
