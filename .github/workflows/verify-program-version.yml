@@ -11,8 +11,8 @@ permissions:
 
 jobs:
   verify-version:
-    # Skips the entire job if the label is present
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'ignore-version-bump') }}
+    # Skips the entire job if the label is present or if the PR is made by Dependabot
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'ignore-version-bump') && github.actor != 'dependabot[bot]' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout PR code
