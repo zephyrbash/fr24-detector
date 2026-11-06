@@ -1,0 +1,73 @@
+name: Build binaries
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check-tag-versions:
+    uses: ./.github/workflows/check-tag-versions.yml
+  build:
+    needs: check-tag-versions
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-26.04, target: x86_64-unknown-linux-gnu, name: linux-amd64 }
+          - { runner: ubuntu-26.04-arm, target: aarch64-unknown-linux-gnu, name: linux-arm64 }
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: rustup target add ${{ matrix.target }}
+      - run: cargo build --locked --release --target ${{ matrix.target }}
+      - name: Prepare binary
+        run: |
+          mkdir -p release
+          cp "target/${{ matrix.target }}/release/fr24d" "release/fr24d-${{ matrix.name }}"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fr24d-${{ matrix.name }}
+          path: release/*
+          if-no-files-found: error
+      - name: Package release binary
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        env:
+          TARGET: ${{ matrix.target }}
+          PLATFORM: ${{ matrix.name }}
+          VERSION: ${{ github.ref_name }}
+        run: |
+          python3 - <<'PYTHON'
+          import os
+          from pathlib import Path
+          from zipfile import ZIP_DEFLATED, ZipFile
+          binary = Path('target') / os.environ['TARGET'] / 'release' / 'fr24d'
+          platform, arch = os.environ['PLATFORM'].split('-', 1)
+          with ZipFile(f"fr24-detector_{platform}_{arch}_{os.environ['VERSION']}.zip", 'w', ZIP_DEFLATED) as package:
+              package.write(binary, binary.name)
+          PYTHON
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        with:
+          name: release-${{ matrix.name }}
+          path: fr24-detector_*.zip
+          if-no-files-found: error
+  release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: release-*
+          path: release
+          merge-multiple: true
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" release/*.zip --verify-tag --generate-notes
