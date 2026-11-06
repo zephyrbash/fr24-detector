@@ -105,7 +105,7 @@ fn does_not_send_webhook_when_state_has_not_changed() {
     .unwrap();
     conn.execute(
         "INSERT INTO settings (key, value) VALUES (?1, ?2)",
-        ["webhook_url", &webhook_url],
+        ["webhook_url", webhook_url],
     )
     .unwrap();
     conn.execute(
