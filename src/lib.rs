@@ -292,7 +292,6 @@ pub fn config_general_webhook_get() -> Result<String, String> {
 
     let conn = open_database(&get_config_path())?;
     get_setting(&conn, "webhook_url")?
-        .map(|value| value)
         .ok_or_else(|| "webhook_url not found in configuration database".to_string())
 }
 
